@@ -1,0 +1,86 @@
+{
+  "name": "agentbridge",
+  "displayName": "AgentBridge",
+  "description": "Anthropic-compatible HTTP API for GitHub Copilot's models, served on localhost.",
+  "version": "0.0.1",
+  "publisher": "agentbridge-dev",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onView:agentbridge.controlPanel"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "agentbridge",
+          "title": "AgentBridge",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "agentbridge": [
+        {
+          "type": "webview",
+          "id": "agentbridge.controlPanel",
+          "name": "Control panel"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "agentbridge.start",
+        "title": "AgentBridge: Start server"
+      },
+      {
+        "command": "agentbridge.stop",
+        "title": "AgentBridge: Stop server"
+      },
+      {
+        "command": "agentbridge.toggle",
+        "title": "AgentBridge: Toggle server"
+      }
+    ],
+    "configuration": {
+      "title": "AgentBridge",
+      "properties": {
+        "agentbridge.port": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1024,
+          "maximum": 65535,
+          "description": "Port the AgentBridge HTTP server listens on (127.0.0.1 only)."
+        },
+        "agentbridge.defaultModel": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Fallback Copilot model id when an incoming request's model field cannot be resolved."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "vscode:prepublish": "node esbuild.js --production",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.95.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
