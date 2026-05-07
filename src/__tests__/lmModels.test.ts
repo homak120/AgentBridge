@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { resolveModel } from "../lm/models";
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 import * as vscodeMock from "./__mocks__/vscode";
 
 function fake(id: string) {

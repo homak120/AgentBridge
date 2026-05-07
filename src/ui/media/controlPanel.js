@@ -21,11 +21,8 @@
     error: "Error",
   };
 
-  let lastState = "stopped";
-
   function applyState(payload) {
     const state = payload.state;
-    lastState = state;
 
     pill.className = "pill " + state;
     statusText.textContent =

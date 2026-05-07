@@ -107,20 +107,43 @@ export const LanguageModelChatToolMode = {
   Required: 2,
 } as const;
 
+export interface CancellationToken {
+  readonly isCancellationRequested: boolean;
+  onCancellationRequested(listener: () => void): { dispose(): void };
+}
+
 export class CancellationTokenSource {
   private _cancelled = false;
-  public readonly token = {
-    get isCancellationRequested(): boolean {
-      return false; // Tests don't currently need a live token.
-    },
-    onCancellationRequested: (_l: () => void): { dispose(): void } => ({ dispose: () => {} }),
-  };
-  cancel(): void {
-    this._cancelled = true;
+  private readonly _listeners: Array<() => void> = [];
+  public readonly token: CancellationToken;
+
+  constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- inner getter closure
+    const self = this;
+    this.token = {
+      get isCancellationRequested(): boolean {
+        return self._cancelled;
+      },
+      onCancellationRequested(listener: () => void): { dispose(): void } {
+        self._listeners.push(listener);
+        return {
+          dispose: () => {
+            const i = self._listeners.indexOf(listener);
+            if (i >= 0) self._listeners.splice(i, 1);
+          },
+        };
+      },
+    };
   }
-  dispose(): void {}
-  get isCancelled(): boolean {
-    return this._cancelled;
+
+  cancel(): void {
+    if (this._cancelled) return;
+    this._cancelled = true;
+    for (const l of [...this._listeners]) l();
+  }
+
+  dispose(): void {
+    this._listeners.length = 0;
   }
 }
 

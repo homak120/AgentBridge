@@ -1,11 +1,16 @@
 import { randomBytes } from "node:crypto";
 import { Router } from "express";
 import * as vscode from "vscode";
-import { collectText } from "../converter/responseFromLm";
 import { parseRequestBody } from "../converter/parse";
 import { requestToLm } from "../converter/requestToLm";
+import {
+  collectResponse,
+  processStream,
+  type BlockSink,
+} from "../converter/responseFromLm";
+import { SseWriter } from "../converter/streaming";
+import type { MessagesResponse, StopReason } from "../converter/types";
 import { resolveModel } from "../lm/models";
-import type { MessagesResponse } from "../converter/types";
 import { classifyError, HttpError, sendError } from "../util/errors";
 import type { RouteDeps } from "./types";
 
@@ -15,7 +20,8 @@ export function messagesRouter(deps: RouteDeps): Router {
   r.post("/messages", async (req, res) => {
     const startedAt = Date.now();
     let modelId: string | undefined;
-    let cts: vscode.CancellationTokenSource | undefined;
+    const cts = new vscode.CancellationTokenSource();
+    req.on("close", () => cts.cancel());
 
     try {
       if (!req.header("x-api-key")) {
@@ -24,14 +30,6 @@ export function messagesRouter(deps: RouteDeps): Router {
 
       const body = parseRequestBody(req.body);
       modelId = body.model;
-
-      if (body.stream) {
-        throw new HttpError(
-          400,
-          "invalid_request_error",
-          "Streaming is not implemented in this build (Phase 2). Set stream:false.",
-        );
-      }
 
       const model = await resolveModel(body.model, deps.defaultModel());
       if (!model) {
@@ -43,31 +41,37 @@ export function messagesRouter(deps: RouteDeps): Router {
       }
 
       const { messages, options } = requestToLm(body);
-
-      cts = new vscode.CancellationTokenSource();
-      req.on("close", () => cts?.cancel());
-
       const response = await model.sendRequest(messages, options, cts.token);
-      const text = await collectText(response.stream);
 
-      const out: MessagesResponse = {
-        id: makeMessageId(),
-        type: "message",
-        role: "assistant",
-        model: model.id,
-        content: text.length > 0 ? [{ type: "text", text }] : [],
-        stop_reason: "end_turn",
-        stop_sequence: null,
-        usage: { input_tokens: 0, output_tokens: 0 },
-      };
-      res.json(out);
+      const messageId = makeMessageId();
+
+      if (body.stream) {
+        await streamResponse(res, response.stream, messageId, model.id);
+      } else {
+        const { blocks, stopReason } = await collectResponse(response.stream);
+        const out: MessagesResponse = {
+          id: messageId,
+          type: "message",
+          role: "assistant",
+          model: model.id,
+          content: blocks,
+          stop_reason: stopReason,
+          stop_sequence: null,
+          usage: { input_tokens: 0, output_tokens: 0 },
+        };
+        res.json(out);
+      }
     } catch (e) {
       const { status, type, message } = classifyError(e);
       if (!res.headersSent) {
         sendError(res, status, type, message);
+      } else {
+        // Headers already out (streaming had started). The stream helper
+        // emits an SSE error event before this handler runs; nothing more
+        // to do here.
       }
     } finally {
-      cts?.dispose();
+      cts.dispose();
       deps.onRequest?.({
         timestamp: startedAt,
         method: "POST",
@@ -80,6 +84,69 @@ export function messagesRouter(deps: RouteDeps): Router {
   });
 
   return r;
+}
+
+async function streamResponse(
+  res: import("express").Response,
+  stream: AsyncIterable<unknown>,
+  messageId: string,
+  modelId: string,
+): Promise<void> {
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const writer = new SseWriter(
+    {
+      write: (chunk) => {
+        res.write(chunk);
+      },
+      end: () => {
+        res.end();
+      },
+    },
+    messageId,
+    modelId,
+  );
+
+  writer.messageStart();
+
+  let stopReason: StopReason = "end_turn";
+  const sink: BlockSink = {
+    openText(index) {
+      writer.contentBlockStart(index, { type: "text", text: "" });
+    },
+    appendText(index, text) {
+      writer.contentBlockDelta(index, { type: "text_delta", text });
+    },
+    closeText(index) {
+      writer.contentBlockStop(index);
+    },
+    toolCall(index, callId, name, input) {
+      writer.contentBlockStart(index, { type: "tool_use", id: callId, name, input: {} });
+      writer.contentBlockDelta(index, {
+        type: "input_json_delta",
+        partial_json: JSON.stringify(input ?? {}),
+      });
+      writer.contentBlockStop(index);
+    },
+    end(reason) {
+      stopReason = reason;
+    },
+  };
+
+  try {
+    await processStream(stream, sink);
+    writer.messageDelta(stopReason, 0);
+    writer.messageStop();
+    res.end();
+  } catch (e) {
+    const { type, message } = classifyError(e);
+    writer.error(type, message);
+    res.end();
+  }
 }
 
 function makeMessageId(): string {
