@@ -12,8 +12,7 @@ export interface ToolUseBlock {
   type: "tool_use";
   id: string;
   name: string;
-  // Tool input is user-defined JSON Schema payload — `any` permitted per D10.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // Tool input is a user-defined JSON-Schema payload (D10).
   input: any;
 }
 
@@ -35,7 +34,6 @@ export interface Tool {
   name: string;
   description?: string;
   // JSON Schema; `any` permitted per D10.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   input_schema: any;
 }
 

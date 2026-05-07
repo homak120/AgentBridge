@@ -24,6 +24,7 @@ main {
   border-radius: 50%;
   display: inline-block;
   background: var(--vscode-descriptionForeground);
+  flex-shrink: 0;
 }
 
 .pill.stopped {
@@ -33,6 +34,16 @@ main {
 .pill.starting,
 .pill.stopping {
   background: var(--vscode-charts-orange, #d18616);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+#status-text {
+  font-weight: 500;
 }
 
 .pill.running {
@@ -134,6 +145,14 @@ code {
   overflow-y: auto;
   font-family: var(--vscode-editor-font-family);
   font-size: 11px;
+}
+
+#activity:empty::before {
+  content: "No requests yet.";
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
 }
 
 #activity li {

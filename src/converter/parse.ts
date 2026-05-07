@@ -3,7 +3,6 @@ import type { Block, Message, MessagesRequest, Tool, ToolChoice } from "./types"
 
 // Validate-and-narrow the parsed JSON body of POST /v1/messages.
 // `any` is allowed at this single boundary per decision D10.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function parseRequestBody(raw: any): MessagesRequest {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
     throw bad("Body must be a JSON object.");

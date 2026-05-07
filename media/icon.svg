@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-  <path d="M3 11l5-5v3h3v4H8v3z"/>
-  <path d="M21 13l-5 5v-3h-3v-4h3V8z"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 14h18"/>
+  <path d="M5 14V9"/>
+  <path d="M19 14V9"/>
+  <path d="M9 14v-3"/>
+  <path d="M15 14v-3"/>
+  <path d="M3 9c2-3 7-3 9 0"/>
+  <path d="M12 9c2-3 7-3 9 0"/>
 </svg>

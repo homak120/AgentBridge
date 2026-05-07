@@ -118,6 +118,7 @@ export class CancellationTokenSource {
   public readonly token: CancellationToken;
 
   constructor() {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- inner getter closure
     const self = this;
     this.token = {
       get isCancellationRequested(): boolean {
