@@ -12,6 +12,7 @@ import { SseWriter } from "../converter/streaming";
 import type { MessagesResponse, StopReason } from "../converter/types";
 import { resolveModel } from "../lm/models";
 import { classifyError, HttpError, sendError } from "../util/errors";
+import { log } from "../util/log";
 import type { RouteDeps } from "./types";
 
 export function messagesRouter(deps: RouteDeps): Router {
@@ -21,7 +22,16 @@ export function messagesRouter(deps: RouteDeps): Router {
     const startedAt = Date.now();
     let modelId: string | undefined;
     const cts = new vscode.CancellationTokenSource();
-    req.on("close", () => cts.cancel());
+    // Cancel only on premature client disconnect — `res.on("close")` fires
+    // exactly when the connection drops without a complete response.
+    // (`req.on("close")` also fires when the request body stream finishes,
+    // which would cancel the upstream call immediately.)
+    res.on("close", () => {
+      if (!res.writableEnded) {
+        log("client disconnected mid-request; cancelling upstream");
+        cts.cancel();
+      }
+    });
 
     try {
       if (!req.header("x-api-key")) {
@@ -63,6 +73,19 @@ export function messagesRouter(deps: RouteDeps): Router {
       }
     } catch (e) {
       const { status, type, message } = classifyError(e);
+      // Log the full error to AgentBridge OutputChannel so we can see
+      // upstream LanguageModelError details (cause, code) that don't fit
+      // in the wire envelope.
+      log(
+        `POST /v1/messages → ${status} ${type}: ${message}` +
+          (e instanceof Error && e.stack ? `\n${e.stack}` : "") +
+          (e && typeof e === "object" && "cause" in e
+            ? `\n  cause: ${String((e as { cause: unknown }).cause)}`
+            : "") +
+          (e && typeof e === "object" && "code" in e
+            ? `\n  code: ${String((e as { code: unknown }).code)}`
+            : ""),
+      );
       if (!res.headersSent) {
         sendError(res, status, type, message);
       } else {
