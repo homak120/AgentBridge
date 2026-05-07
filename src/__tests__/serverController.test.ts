@@ -1,52 +1,75 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { ServerController, type ServerState } from "../serverController";
 
-describe("ServerController", () => {
-  it("starts in the stopped state with the default port", () => {
-    const c = new ServerController();
-    expect(c.state).toBe("stopped");
-    expect(c.port).toBe(3000);
+const controllers: ServerController[] = [];
+
+function make(): ServerController {
+  const c = new ServerController();
+  c.setPort(0); // OS-assigned port — avoids collisions in tests.
+  controllers.push(c);
+  return c;
+}
+
+afterEach(async () => {
+  for (const c of controllers.splice(0)) {
+    await c.stop().catch(() => {});
     c.dispose();
+  }
+});
+
+describe("ServerController", () => {
+  it("starts in the stopped state", () => {
+    const c = make();
+    expect(c.state).toBe("stopped");
   });
 
   it("emits starting → running on start()", async () => {
-    const c = new ServerController();
+    const c = make();
     const states: ServerState[] = [];
     c.onState((e) => states.push(e.state));
     await c.start();
     expect(states).toEqual(["starting", "running"]);
-    c.dispose();
+    expect(c.state).toBe("running");
+    expect(c.boundPort).toBeGreaterThan(0);
   });
 
   it("emits stopping → stopped on stop()", async () => {
-    const c = new ServerController();
+    const c = make();
     await c.start();
     const states: ServerState[] = [];
     c.onState((e) => states.push(e.state));
     await c.stop();
     expect(states).toEqual(["stopping", "stopped"]);
-    c.dispose();
   });
 
   it("toggle() flips between stopped and running", async () => {
-    const c = new ServerController();
+    const c = make();
     expect(c.state).toBe("stopped");
     await c.toggle();
     expect(c.state).toBe("running");
     await c.toggle();
     expect(c.state).toBe("stopped");
-    c.dispose();
   });
 
-  it("setPort() updates the port reported on subsequent state events", async () => {
-    const c = new ServerController();
-    c.setPort(4242);
-    let observedPort = 0;
-    c.onState((e) => {
-      observedPort = e.port;
+  it("transitions to error state when port is already in use", async () => {
+    const a = make();
+    await a.start();
+    const port = a.boundPort!;
+
+    const b = new ServerController();
+    controllers.push(b);
+    b.setPort(port);
+
+    let lastState: ServerState | undefined;
+    let lastMessage: string | undefined;
+    b.onState((e) => {
+      lastState = e.state;
+      lastMessage = e.message;
     });
-    await c.start();
-    expect(observedPort).toBe(4242);
-    c.dispose();
+    await b.start();
+
+    expect(b.state).toBe("error");
+    expect(lastState).toBe("error");
+    expect(lastMessage).toBeDefined();
   });
 });
