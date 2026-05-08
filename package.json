@@ -81,6 +81,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
+    "smoke": "node scripts/smoke.mjs",
     "package": "vsce package --no-dependencies --out agentbridge.vsix"
   },
   "devDependencies": {

@@ -138,12 +138,31 @@ choices.
 
 ```bash
 npm install
-npm test          # 57 unit tests
+npm test          # vitest unit tests
 npm run typecheck # tsc --noEmit
 npm run lint      # eslint src
 npm run build     # → out/extension.js
 npm run package   # → agentbridge.vsix
+npm run smoke     # regression test against a running server (see below)
 ```
+
+### Regression smoke tests
+
+`scripts/smoke.mjs` hits a running AgentBridge server and exercises
+the wire-level behaviours from `.specify/specs/04-test-plan.md`
+(Phase 2 + 3): `/v1/models`, non-streaming, error envelope, missing
+auth, streaming SSE sequence, tool-call round-trip with byte-identical
+id, mid-stream cancellation. Start the dev host, click **Start
+server** in the AgentBridge sidebar, then:
+
+```bash
+npm run smoke                                    # default port 4000, model gpt-4o-mini
+AGENTBRIDGE_PORT=3000 npm run smoke              # custom port
+AGENTBRIDGE_MODEL=claude-haiku-4.5 npm run smoke # different model
+AGENTBRIDGE_VERBOSE=1 npm run smoke              # dump every SSE event
+```
+
+Exits non-zero on the first failed assertion.
 
 ## License
 
