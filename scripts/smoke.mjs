@@ -65,13 +65,21 @@ function preflight() {
     fail("preflight", `Nothing listening on port ${PORT}. Start AgentBridge in the dev host first.`);
     process.exit(1);
   }
-  // Second line of lsof output (header is first); column 9 has NAME (e.g. "127.0.0.1:4000 (LISTEN)").
-  const line = r.stdout.split("\n")[1] ?? "";
-  const binding = line.split(/\s+/).find((tok) => tok.includes(":")) ?? "";
-  if (binding.startsWith(`${HOST}:${PORT}`)) {
-    ok("2C — bound to loopback", binding);
+  // Multiple listeners can share a port across IP families (e.g. a Vite dev
+  // server on [::1]:PORT and AgentBridge on 127.0.0.1:PORT). Scan every
+  // listener row and accept if any binds 127.0.0.1:PORT — that's us.
+  const lines = r.stdout.split("\n").slice(1).filter((l) => l.trim().length > 0);
+  const target = `${HOST}:${PORT}`;
+  const allBindings = lines.map((l) => l.split(/\s+/).find((tok) => tok.includes(":")) ?? "");
+  const ours = allBindings.find((b) => b === target || b.startsWith(`${target} `));
+  if (ours) {
+    const others = allBindings.filter((b) => b !== ours);
+    const detail = others.length > 0
+      ? `${ours} (also seen: ${others.join(", ")})`
+      : ours;
+    ok("2C — bound to loopback", detail);
   } else {
-    fail("2C — bound to wrong interface", `expected ${HOST}:${PORT}, got ${binding}`);
+    fail("2C — bound to wrong interface", `expected ${target}, got ${allBindings.join(", ")}`);
     process.exit(1);
   }
 }
