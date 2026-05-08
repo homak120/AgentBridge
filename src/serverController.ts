@@ -1,5 +1,6 @@
 import type { Server } from "node:http";
 import { EventEmitter } from "vscode";
+import { ActivityRecorder, type ActivityEntry } from "./activity";
 import { buildApp } from "./server";
 
 export type ServerState = "stopped" | "starting" | "running" | "stopping" | "error";
@@ -10,14 +11,8 @@ export interface StateEvent {
   message?: string;
 }
 
-export interface ActivityEntry {
-  timestamp: number;
-  method: string;
-  path: string;
-  status: number;
-  durationMs: number;
-  model?: string;
-}
+// Re-exported so existing callers don't need to update imports.
+export type { ActivityEntry } from "./activity";
 
 const HOST = "127.0.0.1"; // decision D7 — never bind any other interface.
 const STOP_DRAIN_TIMEOUT_MS = 5000;
@@ -34,8 +29,9 @@ export class ServerController {
   private readonly _stateEmitter = new EventEmitter<StateEvent>();
   readonly onState = this._stateEmitter.event;
 
-  private readonly _requestEmitter = new EventEmitter<ActivityEntry>();
-  readonly onRequest = this._requestEmitter.event;
+  private readonly _recorder = new ActivityRecorder();
+  readonly onRequest: (listener: (e: ActivityEntry) => void) => { dispose(): void } =
+    this._recorder.onRecord;
 
   constructor(private readonly options: ServerControllerOptions = {}) {}
 
@@ -45,6 +41,10 @@ export class ServerController {
 
   get port(): number {
     return this._port;
+  }
+
+  get recorder(): ActivityRecorder {
+    return this._recorder;
   }
 
   // The actual port the OS bound (matters when port 0 is requested in tests).
@@ -63,7 +63,7 @@ export class ServerController {
 
     const app = buildApp({
       defaultModel: () => this.options.defaultModel?.() ?? null,
-      onRequest: (entry) => this._requestEmitter.fire(entry),
+      recorder: this._recorder,
     });
 
     try {
@@ -100,7 +100,7 @@ export class ServerController {
     this._server?.close();
     this._server = undefined;
     this._stateEmitter.dispose();
-    this._requestEmitter.dispose();
+    this._recorder.dispose();
   }
 
   private _setState(state: ServerState, message?: string): void {

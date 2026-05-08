@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Router } from "express";
 import * as vscode from "vscode";
+import { clipBody } from "../activity";
 import { parseRequestBody } from "../converter/parse";
 import { requestToLm } from "../converter/requestToLm";
 import {
@@ -19,13 +20,10 @@ export function messagesRouter(deps: RouteDeps): Router {
   const r = Router();
 
   r.post("/messages", async (req, res) => {
-    const startedAt = Date.now();
-    let modelId: string | undefined;
+    const ctx = deps.recorder.begin("POST", "/v1/messages");
+    ctx.setRequest(req.headers, clipBody(safeStringify(req.body)));
+
     const cts = new vscode.CancellationTokenSource();
-    // Cancel only on premature client disconnect — `res.on("close")` fires
-    // exactly when the connection drops without a complete response.
-    // (`req.on("close")` also fires when the request body stream finishes,
-    // which would cancel the upstream call immediately.)
     res.on("close", () => {
       if (!res.writableEnded) {
         log("client disconnected mid-request; cancelling upstream");
@@ -39,7 +37,8 @@ export function messagesRouter(deps: RouteDeps): Router {
       }
 
       const body = parseRequestBody(req.body);
-      modelId = body.model;
+      ctx.setModel(body.model);
+      ctx.mark("bodyParsed");
 
       const model = await resolveModel(body.model, deps.defaultModel());
       if (!model) {
@@ -49,16 +48,19 @@ export function messagesRouter(deps: RouteDeps): Router {
           `Unknown model "${body.model}". Pick a Copilot model id or set agentbridge.defaultModel.`,
         );
       }
+      ctx.mark("modelResolved");
 
       const { messages, options } = requestToLm(body);
       const response = await model.sendRequest(messages, options, cts.token);
+      ctx.mark("upstreamSent");
 
       const messageId = makeMessageId();
 
       if (body.stream) {
-        await streamResponse(res, response.stream, messageId, model.id);
+        await streamResponse(res, response.stream, messageId, model.id, ctx);
       } else {
         const { blocks, stopReason } = await collectResponse(response.stream);
+        ctx.mark("firstByte");
         const out: MessagesResponse = {
           id: messageId,
           type: "message",
@@ -70,12 +72,11 @@ export function messagesRouter(deps: RouteDeps): Router {
           usage: { input_tokens: 0, output_tokens: 0 },
         };
         res.json(out);
+        ctx.setResponse(res.statusCode, res.getHeaders(), clipBody(JSON.stringify(out, null, 2)));
       }
     } catch (e) {
+      ctx.setError(e);
       const { status, type, message } = classifyError(e);
-      // Log the full error to AgentBridge OutputChannel so we can see
-      // upstream LanguageModelError details (cause, code) that don't fit
-      // in the wire envelope.
       log(
         `POST /v1/messages → ${status} ${type}: ${message}` +
           (e instanceof Error && e.stack ? `\n${e.stack}` : "") +
@@ -87,22 +88,19 @@ export function messagesRouter(deps: RouteDeps): Router {
             : ""),
       );
       if (!res.headersSent) {
+        const envelope = { type: "error" as const, error: { type, message } };
         sendError(res, status, type, message);
+        ctx.setResponse(
+          res.statusCode,
+          res.getHeaders(),
+          clipBody(JSON.stringify(envelope, null, 2)),
+        );
       } else {
-        // Headers already out (streaming had started). The stream helper
-        // emits an SSE error event before this handler runs; nothing more
-        // to do here.
+        ctx.setResponse(res.statusCode, res.getHeaders());
       }
     } finally {
       cts.dispose();
-      deps.onRequest?.({
-        timestamp: startedAt,
-        method: "POST",
-        path: "/v1/messages",
-        status: res.statusCode,
-        durationMs: Date.now() - startedAt,
-        model: modelId,
-      });
+      deps.recorder.finish(ctx);
     }
   });
 
@@ -114,6 +112,7 @@ async function streamResponse(
   stream: AsyncIterable<unknown>,
   messageId: string,
   modelId: string,
+  ctx: import("../activity").RecordingContext,
 ): Promise<void> {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
@@ -125,6 +124,7 @@ async function streamResponse(
     {
       write: (chunk) => {
         res.write(chunk);
+        ctx.appendSseChunk(chunk);
       },
       end: () => {
         res.end();
@@ -165,13 +165,23 @@ async function streamResponse(
     writer.messageDelta(stopReason, 0);
     writer.messageStop();
     res.end();
+    ctx.setResponse(res.statusCode, res.getHeaders());
   } catch (e) {
     const { type, message } = classifyError(e);
     writer.error(type, message);
     res.end();
+    ctx.setResponse(res.statusCode, res.getHeaders());
   }
 }
 
 function makeMessageId(): string {
   return "msg_" + randomBytes(12).toString("hex");
+}
+
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2) ?? "";
+  } catch {
+    return String(value);
+  }
 }

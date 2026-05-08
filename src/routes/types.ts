@@ -1,8 +1,6 @@
-import type { ActivityEntry } from "../serverController";
-
-export type ActivityRecorder = (entry: ActivityEntry) => void;
+import type { ActivityRecorder } from "../activity";
 
 export interface RouteDeps {
   defaultModel: () => string | null;
-  onRequest?: ActivityRecorder;
+  recorder: ActivityRecorder;
 }

@@ -1,12 +1,14 @@
 import * as vscode from "vscode";
 import { ServerController } from "../serverController";
+import { DetailPanel } from "./detailPanel";
 
 type FromWebview =
   | { kind: "ready" }
   | { kind: "toggle" }
   | { kind: "setPort"; port: number }
   | { kind: "copyEndpoint" }
-  | { kind: "clearLog" };
+  | { kind: "clearLog" }
+  | { kind: "openDetail"; id: string };
 
 export class ControlPanelProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = "agentbridge.controlPanel";
@@ -61,8 +63,20 @@ export class ControlPanelProvider implements vscode.WebviewViewProvider {
           await vscode.env.clipboard.writeText(`http://127.0.0.1:${this.controller.port}`);
           return;
         case "clearLog":
+          this.controller.recorder.clear();
           view.webview.postMessage({ kind: "logCleared" });
           return;
+        case "openDetail": {
+          const record = this.controller.recorder.get(raw.id);
+          if (record) {
+            DetailPanel.show(record, this.extensionUri);
+          } else {
+            vscode.window.showInformationMessage(
+              "This request is no longer in memory (oldest 50 are kept).",
+            );
+          }
+          return;
+        }
       }
     });
   }
