@@ -41,6 +41,7 @@ module.exports = tseslint.config(
       globals: {
         document: "readonly",
         window: "readonly",
+        navigator: "readonly",
         acquireVsCodeApi: "readonly",
       },
     },

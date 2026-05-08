@@ -31,7 +31,10 @@ export function requestToLm(req: MessagesRequest): ConvertedRequest {
     messages.push(toChatMessage(m));
   }
 
-  const options: vscode.LanguageModelChatRequestOptions = {};
+  const options: vscode.LanguageModelChatRequestOptions = {
+    // Shown to the user on the Copilot consent prompt for first-time use.
+    justification: "AgentBridge is forwarding a request from an external client (e.g. Claude Code).",
+  };
 
   applyTools(options, req.tools, req.tool_choice);
 

@@ -156,11 +156,20 @@ code {
 }
 
 #activity li {
-  padding: 2px 0;
+  padding: 4px 6px;
+  margin: 0 -6px;
   border-bottom: 1px solid var(--vscode-panel-border, transparent);
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+#activity li:hover,
+#activity li:focus-visible {
+  background: var(--vscode-list-hoverBackground);
+  outline: none;
 }
 
 #activity li.error {

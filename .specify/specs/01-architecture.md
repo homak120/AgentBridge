@@ -81,7 +81,7 @@ starts the server explicitly from the sidebar or palette.
 
 `ServerController.start()`:
 
-1. Reads `agentbridge.port` from configuration (default 3000).
+1. Reads `agentbridge.port` from configuration (default 5173).
 2. Builds the Express app via `server.ts`.
 3. `app.listen(port, "127.0.0.1")` — never `0.0.0.0` (decision D7).
 4. On `listening`, transitions state to `running` and emits.

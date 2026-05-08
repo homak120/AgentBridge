@@ -28,7 +28,7 @@ No real HTTP server yet.
     - `views.agentbridge`: one webview view `agentbridge.controlPanel`.
     - `commands`: `agentbridge.start`, `agentbridge.stop`,
       `agentbridge.toggle`.
-    - `configuration`: `agentbridge.port` (default 3000),
+    - `configuration`: `agentbridge.port` (default 5173),
       `agentbridge.defaultModel` (default `null`).
 - TypeScript strict configured. Build via `tsc` or `esbuild` — pick
   one in Phase 1 and commit to it.
@@ -67,7 +67,7 @@ done. Open a PR, summarize, **stop**.
 
 ## Phase 2 — Real server + minimal /v1/messages
 
-**Goal:** start an actual HTTP server on `127.0.0.1:3000`. Handle
+**Goal:** start an actual HTTP server on `127.0.0.1:5173`. Handle
 non-streaming text-only `POST /v1/messages` end-to-end against
 `vscode.lm`. No streaming, no tool calls.
 
@@ -98,7 +98,7 @@ non-streaming text-only `POST /v1/messages` end-to-end against
 
 **2A — Server lifecycle**
 1. Start the server from the sidebar.
-2. `curl http://127.0.0.1:3000/v1/models -H "x-api-key: test"`
+2. `curl http://127.0.0.1:5173/v1/models -H "x-api-key: test"`
    returns 200 with a non-empty `data` array (assuming Copilot is
    signed in).
 3. Stop the server. The same curl now fails with
@@ -106,7 +106,7 @@ non-streaming text-only `POST /v1/messages` end-to-end against
 
 **2B — Text round-trip**
 ```bash
-curl -sS http://127.0.0.1:3000/v1/messages \
+curl -sS http://127.0.0.1:5173/v1/messages \
   -H "x-api-key: test" \
   -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
@@ -120,16 +120,16 @@ Returns a JSON message whose first text block contains "pong" (case-
 insensitive).
 
 **2C — Localhost binding (decision D7)**
-- `lsof -nP -iTCP:3000 -sTCP:LISTEN` shows the server bound to
-  `127.0.0.1:3000`, not `*:3000`.
+- `lsof -nP -iTCP:5173 -sTCP:LISTEN` shows the server bound to
+  `127.0.0.1:5173`, not `*:5173`.
 - From another machine on the LAN,
-  `curl http://<host-ip>:3000/v1/models` either fails or
+  `curl http://<host-ip>:5173/v1/models` either fails or
   returns nothing. (If you can't test cross-machine, at minimum
   confirm the lsof output.)
 
 **2D — Bad request shape**
 ```bash
-curl -sS http://127.0.0.1:3000/v1/messages \
+curl -sS http://127.0.0.1:5173/v1/messages \
   -H "x-api-key: test" -H "anthropic-version: 2023-06-01" \
   -H "content-type: application/json" \
   -d '{}'
@@ -196,7 +196,7 @@ and no orphaned vscode.lm requests remain (check OutputChannel).
 
 **3D — End-to-end with Claude Code (the real test)**
 ```bash
-export ANTHROPIC_BASE_URL=http://127.0.0.1:3000
+export ANTHROPIC_BASE_URL=http://127.0.0.1:5173
 export ANTHROPIC_API_KEY=anything
 claude
 ```

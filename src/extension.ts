@@ -33,5 +33,5 @@ export async function deactivate(): Promise<void> {
 }
 
 function readPortFromConfig(): number {
-  return vscode.workspace.getConfiguration("agentbridge").get<number>("port", 3000);
+  return vscode.workspace.getConfiguration("agentbridge").get<number>("port", 5173);
 }

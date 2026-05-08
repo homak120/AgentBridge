@@ -33,7 +33,7 @@
     toggleBtn.textContent = state === "running" ? "Stop server" : "Start server";
     toggleBtn.disabled = state === "starting" || state === "stopping";
 
-    const port = typeof payload.port === "number" ? payload.port : 3000;
+    const port = typeof payload.port === "number" ? payload.port : 5173;
     if (state === "running" || state === "stopping") {
       endpointSection.hidden = false;
       endpoint.textContent = "http://127.0.0.1:" + port;
@@ -51,6 +51,9 @@
   function appendActivity(entry) {
     const li = document.createElement("li");
     if (entry.status >= 400) li.classList.add("error");
+    li.dataset.id = entry.id;
+    li.tabIndex = 0;
+    li.title = "Click to open request detail";
     const time = new Date(entry.timestamp).toLocaleTimeString();
     const meta =
       entry.status +
@@ -64,6 +67,15 @@
       span(entry.path),
       span(meta, "meta"),
     );
+    li.addEventListener("click", () => {
+      vscode.postMessage({ kind: "openDetail", id: entry.id });
+    });
+    li.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        vscode.postMessage({ kind: "openDetail", id: entry.id });
+      }
+    });
     activityList.insertBefore(li, activityList.firstChild);
     while (activityList.children.length > 50) {
       activityList.removeChild(activityList.lastChild);

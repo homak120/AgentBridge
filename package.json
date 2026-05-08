@@ -57,7 +57,7 @@
       "properties": {
         "agentbridge.port": {
           "type": "number",
-          "default": 3000,
+          "default": 5173,
           "minimum": 1024,
           "maximum": 65535,
           "description": "Port the AgentBridge HTTP server listens on (127.0.0.1 only)."
@@ -81,6 +81,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
+    "smoke": "node scripts/smoke.mjs",
     "package": "vsce package --no-dependencies --out agentbridge.vsix"
   },
   "devDependencies": {

@@ -4,7 +4,7 @@
 
 A VS Code extension that exposes GitHub Copilot's licensed LLMs through
 an Anthropic-compatible HTTP API on localhost. External tools (Claude
-Code, Aider, scripts) point at `http://localhost:3000` and use Copilot
+Code, Aider, scripts) point at `http://localhost:5173` and use Copilot
 models without separate API keys.
 
 **Read `.specify/specs/00-overview.md` first.**

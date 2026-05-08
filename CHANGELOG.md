@@ -37,4 +37,17 @@ Initial release.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- Request-detail debug view: clicking an entry in the sidebar's
+  recent-activity list opens a webview panel in the editor area with
+  request headers/body, response headers/body, per-stage timing,
+  and the raw SSE event stream. `x-api-key` is redacted; bodies are
+  capped at 256 KB.
+- `scripts/smoke.mjs` regression tester wired as `npm run smoke`.
+
+### Changed
+
+- Default port is now **5173** (was 3000). 3000 collided with Open
+  WebUI / Next.js dev servers in practice. Override via
+  `agentbridge.port`. See decision D11.
