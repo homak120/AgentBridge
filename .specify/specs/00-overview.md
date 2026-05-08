@@ -2,7 +2,7 @@
 
 ## What AgentBridge is
 
-A VS Code extension that runs an HTTP server on `http://127.0.0.1:3000`
+A VS Code extension that runs an HTTP server on `http://127.0.0.1:5173`
 and exposes an Anthropic-compatible Messages API. Behind that API it
 calls `vscode.lm` — the language-model surface that the GitHub Copilot
 extension provides — so external clients can drive Copilot's licensed

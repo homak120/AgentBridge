@@ -9,7 +9,7 @@
 //
 // Usage:
 //   npm run smoke
-//   AGENTBRIDGE_PORT=4000 AGENTBRIDGE_MODEL=gpt-4o-mini node scripts/smoke.mjs
+//   AGENTBRIDGE_PORT=5173 AGENTBRIDGE_MODEL=gpt-4o-mini node scripts/smoke.mjs
 //
 // Requires:
 //   - Node 18+ (built-in fetch + AbortController + ReadableStream).
@@ -21,7 +21,7 @@
 
 import { spawnSync } from "node:child_process";
 
-const PORT = Number(process.env.AGENTBRIDGE_PORT ?? 4000);
+const PORT = Number(process.env.AGENTBRIDGE_PORT ?? 5173);
 const HOST = "127.0.0.1";
 const BASE = `http://${HOST}:${PORT}`;
 const MODEL = process.env.AGENTBRIDGE_MODEL ?? "gpt-4o-mini";

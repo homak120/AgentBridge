@@ -33,7 +33,7 @@
     toggleBtn.textContent = state === "running" ? "Stop server" : "Start server";
     toggleBtn.disabled = state === "starting" || state === "stopping";
 
-    const port = typeof payload.port === "number" ? payload.port : 3000;
+    const port = typeof payload.port === "number" ? payload.port : 5173;
     if (state === "running" || state === "stopping") {
       endpointSection.hidden = false;
       endpoint.textContent = "http://127.0.0.1:" + port;

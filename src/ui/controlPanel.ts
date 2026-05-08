@@ -106,7 +106,7 @@ export class ControlPanelProvider implements vscode.WebviewViewProvider {
     <section id="endpoint-section" hidden>
       <h2>Endpoint</h2>
       <div class="row">
-        <code id="endpoint">http://127.0.0.1:3000</code>
+        <code id="endpoint">http://127.0.0.1:5173</code>
         <button id="copy">copy</button>
       </div>
     </section>
@@ -114,7 +114,7 @@ export class ControlPanelProvider implements vscode.WebviewViewProvider {
     <section>
       <h2>Port</h2>
       <div class="row">
-        <input id="port" type="number" min="1024" max="65535" value="3000">
+        <input id="port" type="number" min="1024" max="65535" value="5173">
         <button id="apply-port">apply</button>
       </div>
       <p id="port-hint" class="hint" hidden>Restart server to apply.</p>

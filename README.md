@@ -6,7 +6,7 @@ Anthropic-compatible HTTP API on localhost.
 
 ```
 Client (Claude Code)  →  AgentBridge proxy  →  vscode.lm  →  Copilot  →  GitHub
-        :3000                  (this ext)      (Copilot ext)
+        :5173                  (this ext)      (Copilot ext)
 ```
 
 Stateless. Localhost only. No separate API keys.
@@ -44,11 +44,11 @@ npm run build
    fallback when an incoming request asks for a model id Copilot
    doesn't recognise.
 3. Click **Start server**. The endpoint
-   (`http://127.0.0.1:3000` by default) appears.
+   (`http://127.0.0.1:5173` by default) appears.
 4. Point your client at it:
 
 ```bash
-export ANTHROPIC_BASE_URL=http://127.0.0.1:3000
+export ANTHROPIC_BASE_URL=http://127.0.0.1:5173
 export ANTHROPIC_API_KEY=anything       # required to be set; value is ignored
 claude                                  # or aider, or your own script
 ```
@@ -59,7 +59,7 @@ You're in.
 
 | Setting                     | Default | What it does                                                  |
 |-----------------------------|---------|---------------------------------------------------------------|
-| `agentbridge.port`          | `3000`  | Port to listen on. Loopback only.                             |
+| `agentbridge.port`          | `5173`  | Port to listen on. Loopback only.                             |
 | `agentbridge.defaultModel`  | `null`  | Fallback Copilot model id when the request's `model` field can't be resolved. |
 
 ## How it works
@@ -91,7 +91,7 @@ phases — see `.specify/specs/`.
 The Copilot extension isn't installed or signed in. Install it from
 the marketplace, sign in, then restart AgentBridge from the sidebar.
 
-### "Port 3000 is already in use"
+### "Port 5173 is already in use"
 
 Another process is bound to the port. Either stop that process or
 change `agentbridge.port` in settings, then restart the server.
@@ -100,13 +100,13 @@ change `agentbridge.port` in settings, then restart the server.
 
 By design. The server binds to `127.0.0.1` only (decision D7 in
 `.specify/memory/decisions.md`). If you genuinely need cross-machine
-access, set up an SSH tunnel — `ssh -L 3000:127.0.0.1:3000 host` —
+access, set up an SSH tunnel — `ssh -L 5173:127.0.0.1:5173 host` —
 or your own authenticated reverse proxy.
 
 ### "Model X isn't recognised"
 
 ```bash
-curl http://127.0.0.1:3000/v1/models -H "x-api-key: anything"
+curl http://127.0.0.1:5173/v1/models -H "x-api-key: anything"
 ```
 
 shows the list Copilot exposes. Model IDs vary across Copilot
@@ -156,8 +156,8 @@ id, mid-stream cancellation. Start the dev host, click **Start
 server** in the AgentBridge sidebar, then:
 
 ```bash
-npm run smoke                                    # default port 4000, model gpt-4o-mini
-AGENTBRIDGE_PORT=3000 npm run smoke              # custom port
+npm run smoke                                    # default port 5173, model gpt-4o-mini
+AGENTBRIDGE_PORT=8080 npm run smoke              # custom port
 AGENTBRIDGE_MODEL=claude-haiku-4.5 npm run smoke # different model
 AGENTBRIDGE_VERBOSE=1 npm run smoke              # dump every SSE event
 ```

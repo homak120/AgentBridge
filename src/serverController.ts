@@ -23,7 +23,7 @@ export interface ServerControllerOptions {
 
 export class ServerController {
   private _state: ServerState = "stopped";
-  private _port = 3000;
+  private _port = 5173;
   private _server: Server | undefined;
 
   private readonly _stateEmitter = new EventEmitter<StateEvent>();

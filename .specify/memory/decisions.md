@@ -99,6 +99,9 @@ acceptable.
 
 ## D6 — Default port 3000, configurable
 
+> **Superseded by D11.** Default is now 5173. Original entry kept for
+> history.
+
 **Decision.** The server listens on `127.0.0.1:3000` by default. The
 port is configurable via the `agentbridge.port` setting. If the port
 is in use at start time, surface the error in the sidebar and don't
@@ -196,4 +199,20 @@ relay.
 
 ---
 
-<!-- Append D11, D12, etc. here as the project evolves. -->
+## D11 — Default port 5173 (supersedes D6)
+
+**Decision.** The default port becomes `5173`. Configurability via
+`agentbridge.port` and the no-auto-fallback behaviour from D6 are
+retained.
+
+**Rationale.** Port 3000 is held by Open WebUI, Next.js dev servers,
+Grafana, and a long tail of other local-dev tools — frequent
+collisions made the "copy-paste the SDK example" benefit weaker than
+expected (and we hit it ourselves during the first end-to-end run).
+5173 is Vite's default port; on machines that don't run a Vite dev
+server it's almost always free, and on machines that do, the user is
+usually aware they own it. Less canonical, but in practice less
+contested. Users who want 3000 (or anything else) set
+`agentbridge.port`.
+
+<!-- Append D12, D13, etc. here as the project evolves. -->
